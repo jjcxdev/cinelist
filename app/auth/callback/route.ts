@@ -7,35 +7,32 @@ export async function GET(request: Request) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const token = requestUrl.searchParams.get("token");
-  const type = requestUrl.searchParams.get("type");
   const origin = requestUrl.origin;
+  const type = requestUrl.searchParams.get("type");
+  const hash = requestUrl.hash;
 
   const supabase = await createClient();
 
-  if (token && type === "invite") {
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: "invite",
+  // If we have a hash with access_token, this is an invite flow
+  if (hash && hash.includes("access_token")) {
+    // We need to set up the session using the access token
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (accessToken && refreshToken) {
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
       });
 
       if (error) {
-        console.error("Invite verification error:", error);
         return NextResponse.redirect(
           `${origin}/sign-in?error=${encodeURIComponent(error.message)}`,
         );
       }
 
-      // If verification successful, redirect to invite page with the email
-      return NextResponse.redirect(
-        `${origin}/auth/invite?email=${encodeURIComponent(data.user?.email || "")}`,
-      );
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      return NextResponse.redirect(
-        `${origin}/sign-in?error=Invalid or expired invite link`,
-      );
+      return NextResponse.redirect(`${origin}/auth/invite`);
     }
   }
 
