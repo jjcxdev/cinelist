@@ -37,18 +37,7 @@ export default async function RootLayout({
         <Providers>
           <div className="container mx-auto gap-4 py-10">
             {!isAuthPage && <HeaderAuth />}
-            {isAuthPage ? (
-              children
-            ) : user ? (
-              children
-            ) : (
-              <div className="flex flex-col items-center justify-center">
-                <h1 className="text-2xl font-bold mb-4">Please sign in</h1>
-                <Button asChild>
-                  <Link href="/sign-in">Sign in</Link>
-                </Button>
-              </div>
-            )}
+            {children}
           </div>
         </Providers>
       </body>
