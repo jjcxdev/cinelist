@@ -12,28 +12,17 @@ interface CineListItem {
   title: string;
   is_completed: boolean;
   media_type: "movie" | "tv";
-  series_type?: "entire" | "season" | "episode";
-  series_id?: string;
-  season_number?: number;
-  episode_number?: number;
-  episode_name?: string;
   poster_path: string | null;
   release_date: string | null;
-  seasons?: {
-    season_number: number;
-    episode_count: number;
-    episodes: {
-      episode_number: number;
-      name: string;
-    }[];
-  }[];
+  completed_by: { email: string } | null;
 }
 
 interface CineListProps {
   items: CineListItem[];
+  isAdmin: boolean;
 }
 
-export default function CineList({ items }: CineListProps) {
+export default function CineList({ items, isAdmin }: CineListProps) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -48,7 +37,8 @@ export default function CineList({ items }: CineListProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update item");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update item");
       }
 
       toast({
@@ -61,7 +51,8 @@ export default function CineList({ items }: CineListProps) {
       console.error("Error updating item:", error);
       toast({
         title: "Error",
-        description: "Failed to update item",
+        description:
+          error instanceof Error ? error.message : "Failed to update item",
         variant: "destructive",
       });
     }
@@ -90,43 +81,37 @@ export default function CineList({ items }: CineListProps) {
           <div className="flex flex-col flex-1">
             <CardHeader className="p-0">
               <div className="flex flex-col">
-                <CardTitle>
-                  {item.title}
-                  {item.series_type === "season" && item.season_number && (
-                    <span className="text-sm font-normal ml-2">
-                      Season {item.season_number}
-                    </span>
-                  )}
-                  {item.series_type === "episode" &&
-                    item.season_number &&
-                    item.episode_number && (
-                      <span className="text-sm font-normal ml-2">
-                        Season: {item.season_number} Episode:{" "}
-                        {item.episode_name || item.episode_number}
-                      </span>
-                    )}
-                </CardTitle>
+                <CardTitle>{item.title}</CardTitle>
                 {item.release_date && (
                   <span className="text-sm text-muted-foreground">
                     {new Date(item.release_date).getFullYear()}
                   </span>
                 )}
+                {item.completed_by && (
+                  <span className="text-sm text-muted-foreground">
+                    Completed by: {item.completed_by.email}
+                  </span>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-0 mt-4">
-              <label
-                htmlFor={`complete-${item.id}`}
-                className="flex items-center space-x-2"
-              >
-                <Checkbox
-                  id={`complete-${item.id}`}
-                  checked={item.is_completed}
-                  onCheckedChange={(checked) =>
-                    handleCompleteToggle(item.id, checked === true)
-                  }
-                />
-                <span>Complete</span>
-              </label>
+              {isAdmin ? (
+                <label
+                  htmlFor={`complete-${item.id}`}
+                  className="flex items-center space-x-2"
+                >
+                  <Checkbox
+                    id={`complete-${item.id}`}
+                    checked={item.is_completed}
+                    onCheckedChange={(checked) =>
+                      handleCompleteToggle(item.id, checked === true)
+                    }
+                  />
+                  <span>Complete</span>
+                </label>
+              ) : item.is_completed ? (
+                <div className="text-sm text-muted-foreground">✓ Completed</div>
+              ) : null}
             </CardContent>
           </div>
         </Card>

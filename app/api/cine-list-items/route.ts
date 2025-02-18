@@ -4,60 +4,34 @@ import { createClient } from "@/utils/supabase/server"; // Use server-side clien
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient(); // Get Supabase client
-
+    const supabase = await createClient();
     const {
       data: { user },
-    } = await supabase.auth.getUser(); // Get user from session
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const {
-      title,
-      media_type,
-      series_type,
-      series_id,
-      season_number,
-      episode_number,
-      episode_name,
-      tmdb_id,
-      poster_path,
-      release_date,
-    } = body;
+    const { title, media_type, tmdb_id, poster_path, release_date } = body;
 
     const { data, error } = await supabase
       .from("cine_list_items")
-      .insert([
-        {
-          user_id: user.id,
-          title,
-          media_type,
-          series_type,
-          series_id,
-          season_number,
-          episode_number,
-          episode_name,
-          tmdb_id,
-          poster_path,
-          release_date,
-        },
-      ])
+      .insert([{ title, media_type, tmdb_id, poster_path, release_date }])
       .select();
 
     if (error) {
       console.error("Supabase error details:", error);
       return NextResponse.json(
-        { error: "Failed to add item", details: error },
+        { error: "Failed to add item" },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ data }, { status: 201 }); // Return the newly created item
+    return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    console.error("Error in /api/cine-list-items:", error);
+    console.error("Error in POST /api/cine-list-items:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
@@ -78,8 +52,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from("cine_list_items")
-      .select("*")
-      .eq("user_id", user.id)
+      .select("*, completed_by(email)")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -92,9 +65,9 @@ export async function GET(request: Request) {
     // Fetch episode information for TV series
     const enrichedData = await Promise.all(
       data.map(async (item) => {
-        if (item.media_type === "series" && item.series_id) {
+        if (item.media_type === "tv") {
           const tvResponse = await fetch(
-            `https://api.themoviedb.org/3/tv/${item.series_id}?language=en-US&append_to_response=season/${item.season_number}`,
+            `https://api.themoviedb.org/3/tv/${item.tmdb_id}?language=en-US`,
             {
               headers: {
                 Authorization: `Bearer ${process.env.TMDB_ACCESS_TOKEN}`,
@@ -105,24 +78,7 @@ export async function GET(request: Request) {
 
           if (tvResponse.ok) {
             const tvData = await tvResponse.json();
-            return {
-              ...item,
-              seasons: [
-                {
-                  season_number: item.season_number,
-                  episode_count:
-                    tvData[`season/${item.season_number}`]?.episodes?.length ||
-                    0,
-                  episodes:
-                    tvData[`season/${item.season_number}`]?.episodes?.map(
-                      (episode: any) => ({
-                        episode_number: episode.episode_number,
-                        name: episode.name,
-                      }),
-                    ) || [],
-                },
-              ],
-            };
+            return { ...item, number_of_seasons: tvData.number_of_seasons };
           }
         }
         return item;
@@ -150,8 +106,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user is admin
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("is_admin")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!userRole?.is_admin) {
+      return NextResponse.json(
+        { error: "Only admins can mark items as complete" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
-    const { id, is_completed } = body; // Expecting item ID and new is_completed value
+    const { id, is_completed } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -162,9 +132,11 @@ export async function PATCH(request: Request) {
 
     const { data, error } = await supabase
       .from("cine_list_items")
-      .update({ is_completed })
+      .update({
+        is_completed,
+        completed_by: is_completed ? user.id : null,
+      })
       .eq("id", id)
-      .eq("user_id", user.id) // Ensure the user owns the item
       .select();
 
     if (error) {
@@ -209,8 +181,7 @@ export async function DELETE(request: Request) {
     const { error } = await supabase
       .from("cine_list_items")
       .delete()
-      .eq("id", id)
-      .eq("user_id", user.id); // Ensure the user owns the item
+      .eq("id", id);
 
     if (error) {
       console.error("Error deleting item:", error);

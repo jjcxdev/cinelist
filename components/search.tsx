@@ -27,19 +27,9 @@ import { Button } from "@/components/ui/button";
 interface SearchResult {
   id: number;
   title: string;
-  media_type: "movie" | "tv"; // 'tv' represents series in TMDb
-  poster_path: string | null; // Path to the poster image (optional)
+  media_type: "movie" | "tv";
+  poster_path: string | null;
   release_date: string | null;
-  number_of_seasons?: number;
-  seasons: {
-    season_number: number;
-    episode_count: number;
-    episodes: {
-      episode_number: number;
-      name: string;
-    }[];
-  }[];
-  // Add other relevant fields from the TMDb API response
 }
 
 export default function Search() {

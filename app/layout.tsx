@@ -36,7 +36,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <Providers>
           <div className="container mx-auto gap-4 py-10">
-            <HeaderAuth />
+            {!isAuthPage && <HeaderAuth />}
             {isAuthPage ? (
               children
             ) : user ? (
