@@ -7,17 +7,40 @@ export async function GET(request: Request) {
   // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
+  const token = requestUrl.searchParams.get("token");
   const type = requestUrl.searchParams.get("type");
+  const origin = requestUrl.origin;
+
+  const supabase = await createClient();
+
+  if (token && type === "invite") {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: "invite",
+      });
+
+      if (error) {
+        console.error("Invite verification error:", error);
+        return NextResponse.redirect(
+          `${origin}/sign-in?error=${encodeURIComponent(error.message)}`,
+        );
+      }
+
+      // If verification successful, redirect to invite page with the email
+      return NextResponse.redirect(
+        `${origin}/auth/invite?email=${encodeURIComponent(data.user?.email || "")}`,
+      );
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      return NextResponse.redirect(
+        `${origin}/sign-in?error=Invalid or expired invite link`,
+      );
+    }
+  }
 
   if (code) {
-    const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
-
-    // If this is an invite flow, redirect to the invite page
-    if (type === "invite") {
-      return NextResponse.redirect(`${origin}/auth/invite`);
-    }
   }
 
   // Default redirect for other auth flows
