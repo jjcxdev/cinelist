@@ -15,28 +15,60 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 
 interface AuthFormProps {
-  mode?: "sign-in" | "sign-up";
+  mode?: "sign-in" | "sign-up" | "invite";
+  email?: string;
 }
 
-export default function AuthForm({ mode = "sign-in" }: AuthFormProps) {
-  const [email, setEmail] = useState("");
+export default function AuthForm({
+  mode = "sign-in",
+  email = "",
+}: AuthFormProps) {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const error = searchParams.get("error");
   const success = searchParams.get("success");
 
-  const handleSubmit = async (formData: FormData) => {
-    if (mode === "sign-in") {
-      await signInAction(formData);
+  // If in invite mode, use the provided email
+  const [emailState, setEmailState] = useState(email);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (mode === "invite") {
+      if (password !== confirmPassword) {
+        router.push("/auth/invite?error=Passwords do not match");
+        return;
+      }
+
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) {
+        router.push(`/auth/invite?error=${error.message}`);
+        return;
+      }
+
+      router.push("/protected?success=Password set successfully");
     } else {
-      await signUpAction(formData);
+      const formData = new FormData();
+      formData.append("email", emailState);
+      formData.append("password", password);
+
+      if (mode === "sign-in") {
+        await signInAction(formData);
+      } else {
+        await signUpAction(formData);
+      }
+      router.refresh();
     }
-    router.refresh();
-    //No need to route as we route after the forms are complete
   };
 
   return (
@@ -44,27 +76,32 @@ export default function AuthForm({ mode = "sign-in" }: AuthFormProps) {
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
-            {mode === "sign-in" ? "Sign in" : "Create an account"}
+            {mode === "invite"
+              ? "Set Your Password"
+              : mode === "sign-in"
+                ? "Sign in"
+                : "Create an account"}
           </CardTitle>
           <CardDescription>
-            Enter your email and password to{" "}
-            {mode === "sign-in" ? "sign in" : "create an account"}
+            {mode === "invite"
+              ? "Please set a password for your account"
+              : `Enter your email and password to ${mode === "sign-in" ? "sign in" : "create an account"}`}
           </CardDescription>
           {error && <div className="text-red-500 text-sm">{error}</div>}
           {success && <div className="text-green-500 text-sm">{success}</div>}
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" action={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="m@example.com"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailState}
+                onChange={(e) => setEmailState(e.target.value)}
+                disabled={mode === "invite"}
               />
             </div>
             <div className="space-y-2">
@@ -78,8 +115,25 @@ export default function AuthForm({ mode = "sign-in" }: AuthFormProps) {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
+            {mode === "invite" && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            )}
             <Button type="submit" className="w-full">
-              {mode === "sign-in" ? "Sign in" : "Sign up"}
+              {mode === "invite"
+                ? "Set Password"
+                : mode === "sign-in"
+                  ? "Sign in"
+                  : "Sign up"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
@@ -90,11 +144,18 @@ export default function AuthForm({ mode = "sign-in" }: AuthFormProps) {
                   Sign up
                 </Link>
               </p>
-            ) : (
+            ) : mode === "sign-up" ? (
               <p>
                 Already have an account?{" "}
                 <Link href="/sign-in" className="text-primary hover:underline">
                   Sign in
+                </Link>
+              </p>
+            ) : (
+              <p>
+                Don't have an account?{" "}
+                <Link href="/sign-up" className="text-primary hover:underline">
+                  Sign up
                 </Link>
               </p>
             )}

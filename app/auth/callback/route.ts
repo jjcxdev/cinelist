@@ -8,17 +8,18 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const origin = requestUrl.origin;
-  const redirectTo = requestUrl.searchParams.get("redirect_to")?.toString();
+  const type = requestUrl.searchParams.get("type");
 
   if (code) {
     const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
+
+    // If this is an invite flow, redirect to the invite page
+    if (type === "invite") {
+      return NextResponse.redirect(`${origin}/auth/invite`);
+    }
   }
 
-  if (redirectTo) {
-    return NextResponse.redirect(`${origin}${redirectTo}`);
-  }
-
-  // URL to redirect to after sign up process completes
+  // Default redirect for other auth flows
   return NextResponse.redirect(`${origin}/protected`);
 }
