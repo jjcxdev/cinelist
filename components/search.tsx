@@ -22,12 +22,23 @@ import {
 import { cn } from "@/lib/utils";
 import AddToList from "@/components/addtolist";
 import { Search as SearchIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SearchResult {
   id: number;
   title: string;
   media_type: "movie" | "tv"; // 'tv' represents series in TMDb
   poster_path: string | null; // Path to the poster image (optional)
+  release_date: string | null;
+  number_of_seasons?: number;
+  seasons: {
+    season_number: number;
+    episode_count: number;
+    episodes: {
+      episode_number: number;
+      name: string;
+    }[];
+  }[];
   // Add other relevant fields from the TMDb API response
 }
 
@@ -36,7 +47,6 @@ export default function Search() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
 
-  // Debounce the search function to prevent excessive API calls
   const debouncedSearch = useCallback((q: string) => {
     if (!q) {
       setSearchResults([]);
@@ -45,12 +55,21 @@ export default function Search() {
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/search?query=${q}`);
+        console.log("Fetching search results for:", q);
+        const response = await fetch(
+          `/api/search?query=${encodeURIComponent(q)}`,
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Search failed: ${response.status} ${response.statusText}`,
+          );
+        }
         const data = await response.json();
-        setSearchResults(data.results);
+        console.log("Search response:", data);
+        setSearchResults(data.results || []);
       } catch (error) {
         console.error("Error fetching search results:", error);
-        setSearchResults([]); // Clear results on error
+        setSearchResults([]);
       }
     };
 
@@ -61,56 +80,74 @@ export default function Search() {
     if (query) {
       const timerId = setTimeout(() => {
         debouncedSearch(query);
-      }, 300); // Adjust the debounce delay as needed (e.g., 300ms)
+      }, 300); // Debounce delay of 300ms
 
-      return () => clearTimeout(timerId); // Clear the timeout on unmount or query change
+      return () => clearTimeout(timerId);
     } else {
-      setSearchResults([]); // Clear results when the query is empty
+      setSearchResults([]);
     }
   }, [query, debouncedSearch]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(e.target.value);
-  };
-
   return (
-    <div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <div className="relative">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-5 w-5 text-zinc-500 peer-focus:text-sky-500 transition-colors duration-150" />
-            <Input
-              type="search"
-              placeholder="Search for a movie or series..."
-              value={query}
-              onChange={handleInputChange}
-              className="pl-10 transition-colors duration-150 focus:ring-2 focus:ring-sky-500"
-            />
-          </div>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Search</DialogTitle>
-            <DialogDescription>Search for movies and series.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Command>
-              <CommandInput placeholder="Type a movie or series..." />
-              <CommandList>
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup heading="Movies & Series">
-                  {searchResults.map((result) => (
-                    <CommandItem key={result.id}>
-                      {result.title}
-                      <AddToList item={result} />
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          <SearchIcon className="mr-2 h-4 w-4" />
+          Search for movies and series
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="p-0">
+        <DialogHeader>
+          <DialogTitle className="sr-only">
+            Search Movies and Series
+          </DialogTitle>
+        </DialogHeader>
+        <Command>
+          <CommandInput
+            placeholder="Search for movies and series..."
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {searchResults.map((result) => (
+                <CommandItem
+                  key={result.id}
+                  value={result.title}
+                  className="flex items-center gap-4"
+                >
+                  {result.poster_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${result.poster_path}`}
+                      alt={result.title}
+                      className="h-16 w-auto rounded"
+                    />
+                  )}
+                  <div className="flex flex-col">
+                    <span className="font-medium">{result.title}</span>
+                    {result.release_date && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(result.release_date).getFullYear()}
+                      </span>
+                    )}
+                  </div>
+                  <AddToList
+                    item={result}
+                    className="ml-auto"
+                    onSuccess={() => setOpen(false)}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }
