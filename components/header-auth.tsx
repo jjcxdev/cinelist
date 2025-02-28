@@ -10,14 +10,20 @@ export default async function AuthButton() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user?.id)
+    .single();
+
   return user ? (
-    <div className="flex items-center gap-4 pb-4">
-      Hey, {user.email}!
-      <form action={signOutAction}>
-        <Button type="submit" variant={"outline"}>
-          Sign out
-        </Button>
-      </form>
+    <div className="flex w-full items-center justify-center bg-muted-foreground text-muted">
+      <div className="flex w-full max-w-lg items-center justify-between px-4 py-2">
+        <p>Hello, {profiles?.username}</p>
+        <form action={signOutAction}>
+          <Button type="submit">Sign out</Button>
+        </form>
+      </div>
     </div>
   ) : (
     <div className="flex gap-2">

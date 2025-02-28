@@ -85,7 +85,7 @@ export default function Search() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-start"
         >
           <SearchIcon className="mr-2 h-4 w-4" />
           Search for movies and series
@@ -102,6 +102,7 @@ export default function Search() {
             placeholder="Search for movies and series..."
             value={query}
             onValueChange={setQuery}
+            className="text-base"
           />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>

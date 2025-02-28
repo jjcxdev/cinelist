@@ -59,63 +59,129 @@ export default function CineList({ items, isAdmin }: CineListProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      {items.map((item) => (
-        <Card
-          key={item.id}
-          className={cn(
-            "flex flex-row items-start p-4",
-            item.is_completed && "opacity-50",
-          )}
-        >
-          {item.poster_path && (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
-              alt={item.title}
+    <div className="grid grid-cols-2 gap-4">
+      {/* Requests */}
+      <div className="flex flex-col gap-4">
+        <p>Requests</p>
+        {items
+          .filter((item) => !item.is_completed)
+          .map((item) => (
+            <Card
+              key={item.id}
               className={cn(
-                "h-24 w-auto rounded mr-4",
-                item.is_completed && "grayscale",
+                "flex flex-col items-start p-4",
+                item.is_completed && "opacity-50",
               )}
-            />
-          )}
-          <div className="flex flex-col flex-1">
-            <CardHeader className="p-0">
-              <div className="flex flex-col">
-                <CardTitle>{item.title}</CardTitle>
-                {item.release_date && (
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(item.release_date).getFullYear()}
-                  </span>
-                )}
-                {item.completed_by && (
-                  <span className="text-sm text-muted-foreground">
-                    Completed by: {item.completed_by.email}
-                  </span>
-                )}
+            >
+              <div className="flex w-full flex-1 flex-col">
+                <CardHeader className="p-0">
+                  <div className="flex flex-col">
+                    <CardTitle>{item.title}</CardTitle>
+                    {item.release_date && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(item.release_date).getFullYear()}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <div className="flex w-full flex-col items-start justify-start">
+                  {item.poster_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                      alt={item.title}
+                      className={cn(
+                        "w-ful flex h-24 w-16 items-center justify-center rounded",
+                        item.is_completed && "grayscale",
+                      )}
+                    />
+                  )}
+                  <div className="flex justify-start pt-2">
+                    <CardContent className="p-0">
+                      {isAdmin ? (
+                        <label
+                          htmlFor={`complete-${item.id}`}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`complete-${item.id}`}
+                            checked={item.is_completed}
+                            onCheckedChange={(checked) =>
+                              handleCompleteToggle(item.id, checked === true)
+                            }
+                          />
+                        </label>
+                      ) : null}
+                    </CardContent>
+                  </div>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-0 mt-4">
-              {isAdmin ? (
-                <label
-                  htmlFor={`complete-${item.id}`}
-                  className="flex items-center space-x-2"
-                >
-                  <Checkbox
-                    id={`complete-${item.id}`}
-                    checked={item.is_completed}
-                    onCheckedChange={(checked) =>
-                      handleCompleteToggle(item.id, checked === true)
-                    }
-                  />
-                  <span>Complete</span>
-                </label>
-              ) : item.is_completed ? (
-                <div className="text-sm text-muted-foreground">✓ Completed</div>
-              ) : null}
-            </CardContent>
-          </div>
-        </Card>
-      ))}
+            </Card>
+          ))}
+      </div>
+
+      {/* Added */}
+      <div className="flex flex-col gap-4">
+        <p>Added</p>
+        {items
+          .filter((item) => item.is_completed)
+          .map((item) => (
+            <Card
+              key={item.id}
+              className={cn(
+                "flex flex-col items-start p-4",
+                item.is_completed && "opacity-50",
+              )}
+            >
+              <div className="flex w-full flex-1 flex-col">
+                <CardHeader className="p-0">
+                  <div className="flex flex-col">
+                    <CardTitle>{item.title}</CardTitle>
+                    {item.release_date && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(item.release_date).getFullYear()}
+                      </span>
+                    )}
+                    {item.completed_by && (
+                      <span className="text-sm text-muted-foreground">
+                        Completed by: {item.completed_by.email}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <div className="flex w-full flex-col items-start justify-start">
+                  {item.poster_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                      alt={item.title}
+                      className={cn(
+                        "w-ful flex h-24 w-16 items-center justify-center rounded",
+                        item.is_completed && "grayscale",
+                      )}
+                    />
+                  )}
+                  <div className="flex justify-start pt-2">
+                    <CardContent className="p-0">
+                      {isAdmin ? (
+                        <label
+                          htmlFor={`complete-${item.id}`}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`complete-${item.id}`}
+                            checked={item.is_completed}
+                            onCheckedChange={(checked) =>
+                              handleCompleteToggle(item.id, checked === true)
+                            }
+                          />
+                        </label>
+                      ) : null}
+                    </CardContent>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+      </div>
     </div>
   );
 }

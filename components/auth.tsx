@@ -72,7 +72,7 @@ export default function AuthForm({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="mx-auto w-full max-w-md">
       <Card>
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">
@@ -87,8 +87,8 @@ export default function AuthForm({
               ? "Please set a password for your account"
               : `Enter your email and password to ${mode === "sign-in" ? "sign in" : "create an account"}`}
           </CardDescription>
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-          {success && <div className="text-green-500 text-sm">{success}</div>}
+          {error && <div className="text-sm text-red-500">{error}</div>}
+          {success && <div className="text-sm text-green-500">{success}</div>}
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
