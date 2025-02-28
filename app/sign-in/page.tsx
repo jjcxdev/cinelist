@@ -15,7 +15,7 @@ export default async function SignInPage() {
   }
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center">
+    <div className="flex h-screen w-full flex-col items-center justify-center px-8">
       <AuthForm mode="sign-in" />
     </div>
   );

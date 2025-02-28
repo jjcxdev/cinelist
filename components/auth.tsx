@@ -95,6 +95,7 @@ export default function AuthForm({
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
+                className="text-base"
                 id="email"
                 name="email"
                 type="email"
@@ -107,6 +108,7 @@ export default function AuthForm({
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
+                className="text-base"
                 id="password"
                 name="password"
                 type="password"
@@ -119,6 +121,7 @@ export default function AuthForm({
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
+                  className="text-base"
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
