@@ -16,6 +16,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { title, media_type, tmdb_id, poster_path, release_date } = body;
 
+    // Check if item already exists
+    const { data: existingItem } = await supabase
+      .from("cine_list_items")
+      .select()
+      .eq("tmdb_id", tmdb_id)
+      .single();
+
+    if (existingItem) {
+      return NextResponse.json(
+        { error: "Item already exists in the list" },
+        { status: 409 },
+      );
+    }
+
     const { data, error } = await supabase
       .from("cine_list_items")
       .insert([{ title, media_type, tmdb_id, poster_path, release_date }])

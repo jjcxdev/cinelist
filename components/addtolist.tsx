@@ -82,6 +82,16 @@ export default function AddToList({
         body: JSON.stringify(payload),
       });
 
+      if (response.status === 409) {
+        setIsAlreadyAdded(true);
+        toast({
+          title: "Already Added",
+          description: "This item is already in your list",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!response.ok) {
         throw new Error("Failed to add item");
       }
