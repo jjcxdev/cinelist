@@ -1,7 +1,7 @@
 // src/components/AddToList.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,10 +36,33 @@ export default function AddToList({
   onSuccess,
 }: AddToListProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isAlreadyAdded, setIsAlreadyAdded] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const checkIfItemExists = async () => {
+      try {
+        const response = await fetch("/api/cine-list-items");
+        if (!response.ok) {
+          throw new Error("Failed to fetch items");
+        }
+        const data = await response.json();
+        const exists = data.data.some(
+          (existingItem: any) => existingItem.tmdb_id === item.id.toString(),
+        );
+        setIsAlreadyAdded(exists);
+      } catch (error) {
+        console.error("Error checking if item exists:", error);
+      }
+    };
+
+    checkIfItemExists();
+  }, [item.id]);
+
   const handleAddItem = async () => {
+    if (isAlreadyAdded) return;
+
     setIsLoading(true);
 
     const payload = {
@@ -86,13 +109,15 @@ export default function AddToList({
       <Button
         onClick={handleAddItem}
         className="w-[180px]"
-        disabled={isLoading}
+        disabled={isLoading || isAlreadyAdded}
       >
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Adding...
           </>
+        ) : isAlreadyAdded ? (
+          "Already Added"
         ) : (
           "Add to List"
         )}
